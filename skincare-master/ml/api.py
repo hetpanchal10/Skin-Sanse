@@ -1,9 +1,8 @@
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import shutil
 import os
 
-# Import your refactored prediction function
 from predict_skin import predict_image
 
 app = FastAPI()
@@ -16,19 +15,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/")
+def home():
+    return {"status": "API is running successfully!"}
+
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
     temp_file_path = f"temp_{file.filename}"
-    with open(temp_file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-    
     try:
-        # Run the actual PyTorch model prediction
+        with open(temp_file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
         result = predict_image(temp_file_path)
         return {"success": True, "prediction": result}
     
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        print(f"Error during prediction: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
     
     finally:
         if os.path.exists(temp_file_path):
