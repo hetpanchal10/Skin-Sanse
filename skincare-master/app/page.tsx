@@ -217,24 +217,30 @@ export default function SkincareLanding() {
     }
   };
 
-  const handleSkinAnalysis = async () => {
+const handleSkinAnalysis = async () => {
     if (!selectedImage) return;
 
     setIsAnalyzing(true);
     try {
       const formData = new FormData();
-      formData.append('image', selectedImage);
+      formData.append('file', selectedImage); // Note: Ensure the key matches 'file' expected by FastAPI
 
-      const response = await fetch('/api/predict-skin', {
+      // 👇 REPLACE THE URL BELOW WITH YOUR LIVE RENDER BACKEND URL 👇
+      const response = await fetch('https://skin-sense-api-xxxx.onrender.com/predict', {
         method: 'POST',
         body: formData,
       });
 
       if (response.ok) {
-        const result = await response.json();
-        setPrediction(result);
+        const data = await response.json();
+        // Assuming your FastAPI returns { success: true, prediction: { ... } }
+        if (data.success) {
+          setPrediction(data.prediction);
+        } else {
+          console.error('Prediction failed:', data.error);
+        }
       } else {
-        console.error('Prediction failed');
+        console.error('Server response failed');
       }
     } catch (error) {
       console.error('Error:', error);
