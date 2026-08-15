@@ -225,8 +225,8 @@ const handleSkinAnalysis = async () => {
       const formData = new FormData();
       formData.append('file', selectedImage);
 
-      // 👉 DIRECTLY CALL YOUR LIVE RENDER BACKEND URL BELOW:
-    const response = await fetch('https://skin-sanse-1.onrender.com', {
+      // Hardcoded directly to your live backend — no placeholders
+      const response = await fetch('https://skin-sanse-1.onrender.com/predict', {
         method: 'POST',
         body: formData,
       });
@@ -239,10 +239,10 @@ const handleSkinAnalysis = async () => {
           console.error('Prediction failed:', data.error);
         }
       } else {
-        console.error('Server response failed');
+        console.error('Server response failed with status:', response.status);
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error connecting to backend:', error);
     } finally {
       setIsAnalyzing(false);
     }
