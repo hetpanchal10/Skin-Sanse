@@ -223,17 +223,16 @@ const handleSkinAnalysis = async () => {
     setIsAnalyzing(true);
     try {
       const formData = new FormData();
-      formData.append('file', selectedImage); // Note: Ensure the key matches 'file' expected by FastAPI
+      formData.append('file', selectedImage); // FastAPI expects 'file'
 
-      // 👇 REPLACE THE URL BELOW WITH YOUR LIVE RENDER BACKEND URL 👇
-      const response = await fetch('https://skin-sense-api-xxxx.onrender.com/predict', {
+      // 👇 MAKE SURE THIS IS YOUR ACTUAL RENDER URL + /predict 👇
+      const response = await fetch('https://skin-sense-api.onrender.com/predict', {
         method: 'POST',
         body: formData,
       });
 
       if (response.ok) {
         const data = await response.json();
-        // Assuming your FastAPI returns { success: true, prediction: { ... } }
         if (data.success) {
           setPrediction(data.prediction);
         } else {
