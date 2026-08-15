@@ -1,2 +1,8 @@
+fastapi
+uvicorn
+python-multipart
+tensorflow
 torch
 torchvision
+pillow
+numpy

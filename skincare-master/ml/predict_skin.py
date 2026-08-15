@@ -14,20 +14,41 @@ def build_model(num_classes: int) -> torch.nn.Module:
     return model
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Predict skin type from image.")
-    parser.add_argument("--image", type=str, required=True, help="Path to input image")
-    parser.add_argument("--model", type=str, required=True, help="Path to model checkpoint")
-    args = parser.parse_args()
+DEFAULT_MODEL_PATH = Path(__file__).parent / "model.pth"
+DEVICE = torch.device("cpu")
 
-    image_path = Path(args.image)
-    model_path = Path(args.model)
 
-    checkpoint = torch.load(model_path, map_location="cpu")
-    class_names = checkpoint["class_names"]
+def predict_image(image_path: str, model_path: Path = DEFAULT_MODEL_PATH):
+    image_path = Path(image_path)
+    if not image_path.exists():
+        raise FileNotFoundError(f"Image not found at {image_path}")
+
+    # Fallback simulation if model checkpoint doesn't exist yet, 
+    # allowing you to test your UI/API pipeline immediately with varying responses.
+    if not model_path.exists():
+        img = Image.open(image_path).convert("RGB")
+        width, height = img.size
+        dummy_classes = ["Oily", "Dry", "Normal", "Combination"]
+        selected_class = dummy_classes[(width + height) % len(dummy_classes)]
+        return {
+            "predicted_class": selected_class,
+            "confidence": 0.92,
+            "probabilities": {
+                "Oily": 0.05,
+                "Dry": 0.03,
+                "Normal": 0.02,
+                "Combination": 0.92
+            },
+            "note": "Using mock prediction because model.pth was not found in ml folder."
+        }
+
+    # Real PyTorch Model Inference
+    checkpoint = torch.load(model_path, map_location=DEVICE)
+    class_names = checkpoint.get("class_names", ["Oily", "Dry", "Normal", "Combination"])
 
     model = build_model(num_classes=len(class_names))
     model.load_state_dict(checkpoint["model_state_dict"])
+    model.to(DEVICE)
     model.eval()
 
     tfm = transforms.Compose(
@@ -39,7 +60,7 @@ def main():
     )
 
     img = Image.open(image_path).convert("RGB")
-    x = tfm(img).unsqueeze(0)
+    x = tfm(img).unsqueeze(0).to(DEVICE)
 
     with torch.no_grad():
         logits = model(x)
@@ -53,7 +74,17 @@ def main():
         "confidence": best_prob,
         "probabilities": all_probs,
     }
-    print(json.dumps(result))
+    return result
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Predict skin type from image.")
+    parser.add_argument("--image", type=str, required=True, help="Path to input image")
+    parser.add_argument("--model", type=str, default=str(DEFAULT_MODEL_PATH), help="Path to model checkpoint")
+    args = parser.parse_args()
+
+    result = predict_image(args.image, Path(args.model))
+    print(json.dumps(result, indent=2))
 
 
 if __name__ == "__main__":
