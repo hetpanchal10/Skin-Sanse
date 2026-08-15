@@ -226,7 +226,7 @@ const handleSkinAnalysis = async () => {
       formData.append('file', selectedImage);
 
       // 👉 DIRECTLY CALL YOUR LIVE RENDER BACKEND URL BELOW:
-      const response = await fetch('https://your-render-app-name.onrender.com/predict', {
+    const response = await fetch('https://YOUR-ACTUAL-RENDER-NAME.onrender.com/predict', {
         method: 'POST',
         body: formData,
       });
