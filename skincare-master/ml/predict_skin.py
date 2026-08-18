@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 
 import torch
+import torch.nn.functional as F
 from PIL import Image
 from torchvision import models, transforms
 
@@ -14,7 +15,8 @@ def build_model(num_classes: int) -> torch.nn.Module:
     return model
 
 
-DEFAULT_MODEL_PATH = Path(__file__).parent / "model.pth"
+# Updated to match your actual trained model filename
+DEFAULT_MODEL_PATH = Path(__file__).parent / "skin_type_efficientnetb0.pt"
 DEVICE = torch.device("cpu")
 
 
@@ -23,31 +25,31 @@ def predict_image(image_path: str, model_path: Path = DEFAULT_MODEL_PATH):
     if not image_path.exists():
         raise FileNotFoundError(f"Image not found at {image_path}")
 
-    # Fallback simulation if model checkpoint doesn't exist yet, 
-    # allowing you to test your UI/API pipeline immediately with varying responses.
+    # Fallback simulation if model checkpoint doesn't exist yet
     if not model_path.exists():
-        img = Image.open(image_path).convert("RGB")
-        width, height = img.size
-        dummy_classes = ["Oily", "Dry", "Normal", "Combination"]
-        selected_class = dummy_classes[(width + height) % len(dummy_classes)]
+        dummy_classes = ["oily", "normal", "dry"]
         return {
-            "predicted_class": selected_class,
-            "confidence": 0.92,
+            "predicted_class": "normal",
+            "confidence": 0.85,
             "probabilities": {
-                "Oily": 0.05,
-                "Dry": 0.03,
-                "Normal": 0.02,
-                "Combination": 0.92
+                "oily": 0.10,
+                "normal": 0.85,
+                "dry": 0.05
             },
-            "note": "Using mock prediction because model.pth was not found in ml folder."
+            "note": "Using mock prediction because skin_type_efficientnetb0.pt was not found."
         }
 
     # Real PyTorch Model Inference
     checkpoint = torch.load(model_path, map_location=DEVICE)
-    class_names = checkpoint.get("class_names", ["Oily", "Dry", "Normal", "Combination"])
+    class_names = checkpoint.get("class_names", ["oily", "normal", "dry"])
 
     model = build_model(num_classes=len(class_names))
-    model.load_state_dict(checkpoint["model_state_dict"])
+    
+    if "model_state_dict" in checkpoint:
+        model.load_state_dict(checkpoint["model_state_dict"])
+    else:
+        model.load_state_dict(checkpoint)
+        
     model.to(DEVICE)
     model.eval()
 
@@ -64,7 +66,7 @@ def predict_image(image_path: str, model_path: Path = DEFAULT_MODEL_PATH):
 
     with torch.no_grad():
         logits = model(x)
-        probs = torch.softmax(logits, dim=1).squeeze(0)
+        probs = F.softmax(logits, dim=1).squeeze(0)
         best_idx = int(torch.argmax(probs).item())
         best_prob = float(probs[best_idx].item())
 
